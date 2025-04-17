@@ -1,0 +1,121 @@
+{% extends "core/base.html" %}
+{% block title %}Geolocation Index{% endblock %}
+{% block content %}
+
+<div class="container mx-auto p-4">
+    <h1 class="text-2xl font-bold mb-4">Geolocation Index</h1>
+    
+    <button id="getLocationBtn" class="bg-blue-500 text-white px-4 py-2 rounded">Get Location</button>
+
+    <div id="locationResult" class="mt-4 p-4 border rounded hidden">
+        <h2 class="text-xl font-semibold">Location Information</h2>
+        <p id="latitude"></p>
+        <p id="longitude"></p>
+        <p id="city"></p>
+        <p id="country"></p>
+        <p id="saved" class="mt-2 text-green-600"></p>
+    </div>
+
+    <div id="locationError" class="mt-4 text-red-600 hidden"></div>
+
+    <div class="mt-8">
+        <h2 class="text-xl font-bold mb-4">Saved Locations</h2>
+        {% if locations %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-300">
+                    <thead>
+                        <tr>
+                            <th class="py-2 px-4 border-b">User</th>
+                            <th class="py-2 px-4 border-b">Latitude</th>
+                            <th class="py-2 px-4 border-b">Longitude</th>
+                            <th class="py-2 px-4 border-b">Created At</th>
+                            <th class="py-2 px-4 border-b">Updated At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for location in locations %}
+                            <tr>
+                                <td class="py-2 px-4 border-b">{{ location.user.username }}</td>
+                                <td class="py-2 px-4 border-b">{{ location.latitude }}</td>
+                                <td class="py-2 px-4 border-b">{{ location.longitude }}</td>
+                                <td class="py-2 px-4 border-b">{{ location.created_at }}</td>
+                                <td class="py-2 px-4 border-b">{{ location.updated_at }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>No locations saved yet.</p>
+        {% endif %}
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {  
+        const getLocationBtn = document.getElementById('getLocationBtn');
+        getLocationBtn.addEventListener('click', function() {
+            if ('geolocation' in navigator) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    const locationResult = document.getElementById('locationResult');
+                    const locationError = document.getElementById('locationError');
+                    
+                    // Fetch location data from the server
+                    fetch(`/get_location/?lat=${latitude}&lon=${longitude}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                locationError.textContent = data.error;
+                                locationError.classList.remove('hidden');
+                                locationResult.classList.add('hidden');
+                            } else {
+                                // Format latitude and longitude to 6 decimal places
+                                const formattedLat = parseFloat(data.latitude).toFixed(6);
+                                const formattedLon = parseFloat(data.longitude).toFixed(6);
+                                
+                                document.getElementById('latitude').textContent = `Latitude: ${formattedLat}`;
+                                document.getElementById('longitude').textContent = `Longitude: ${formattedLon}`;
+                                document.getElementById('city').textContent = `City: ${data.city}`;
+                                document.getElementById('country').textContent = `Country: ${data.country}`;
+                                
+                                // Display whether the location was saved to the database
+                                const savedElement = document.getElementById('saved');
+                                if (data.saved) {
+                                    savedElement.textContent = 'Location saved to database';
+                                    savedElement.classList.remove('hidden');
+                                } else {
+                                    savedElement.textContent = 'Location not saved to database (no user found)';
+                                    savedElement.classList.remove('hidden');
+                                }
+                                
+                                locationResult.classList.remove('hidden');
+                                locationError.classList.add('hidden');
+                                
+                                // Reload the page to show the updated locations
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 2000);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching location data:', error);
+                            locationError.textContent = 'Failed to fetch location data.';
+                            locationError.classList.remove('hidden');
+                            locationResult.classList.add('hidden');
+                        });
+                }, function(error) {
+                    console.error('Geolocation error:', error);
+                    const locationError = document.getElementById('locationError');
+                    locationError.textContent = 'Unable to retrieve your location.';
+                    locationError.classList.remove('hidden');
+                    locationResult.classList.add('hidden');
+                });
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+        });
+    });
+</script>
+
+{% endblock %} 
