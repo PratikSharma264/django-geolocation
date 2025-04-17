@@ -21,7 +21,7 @@ A Django web application that allows users to get and store their current geoloc
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/PratikSharma264/django-geolocation
 cd geolocate
 ```
 
